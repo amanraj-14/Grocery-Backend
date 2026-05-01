@@ -16,7 +16,10 @@ from auth import hash_password, verify_password, create_token
 
 
 # ---------------- DB INIT ----------------
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print("DB init error:", e)
 
 app = FastAPI()
 
@@ -191,15 +194,21 @@ Message: {data.message}
         return {"error": str(e)}
 
 # ---------------- RAZORPAY ----------------
+client = None
 
-client = razorpay.Client(auth=(
-    "rzp_test_SVoZ2GmFSGHSS5",   # test key_id
-    "1nkIsTQ6RDXjkYt1glr6fzjK"     # test key_secret
-))
-
+try:
+    client = razorpay.Client(auth=(
+        "rzp_test_SVoZ2GmFSGHSS5",
+        "1nkIsTQ6RDXjkYt1glr6fzjK"
+    ))
+except Exception as e:
+    print("Razorpay init error:", e)
 
 @app.post("/create-order")
 def create_order(data: dict = Body(...)):
+    if not client:
+        return {"error": "Payment service unavailable"}
+
     amount = data.get("amount")
 
     order = client.order.create({
