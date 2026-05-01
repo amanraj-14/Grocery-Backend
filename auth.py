@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "fallbacksecret123")
 ALGORITHM = "HS256"
 
 # Safety check
