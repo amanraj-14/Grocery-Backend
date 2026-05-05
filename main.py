@@ -60,10 +60,10 @@ def add_product(product: ProductCreate, db: Session = Depends(get_db)):
     return new_product
 
 
-@app.post("/seed")
-def seed(db: Session = Depends(get_db)):
+@app.get("/seed")
+def seed_get(db: Session = Depends(get_db)):
     seed_products(db)
-    return {"message": "30 products added successfully"}
+    return {"message": "Seeded via browser"}
 
 # ---------------- CART ----------------
 class CartItemCreate(BaseModel):
@@ -93,7 +93,20 @@ def add_to_cart(item: CartItemCreate, db: Session = Depends(get_db)):
 
 @app.get("/cart/{user_id}")
 def get_cart(user_id: int, db: Session = Depends(get_db)):
-    return db.query(CartItem).filter(CartItem.user_id == user_id).all()
+    cart_items = db.query(CartItem).filter(CartItem.user_id == user_id).all()
+
+    result = []
+    for item in cart_items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+
+        result.append({
+            "product_id": item.product_id,
+            "name": product.name if product else item.name,
+            "price": product.price if product else item.price,
+            "quantity": item.quantity
+        })
+
+    return result
 
 
 @app.delete("/cart/{user_id}")
@@ -252,3 +265,14 @@ Thank you for shopping with us 🛒
 
     except Exception as e:
         return {"error": str(e)}
+    
+
+@app.on_event("startup")
+def startup_event():
+    db = SessionLocal()
+    try:
+        if db.query(Product).count() == 0:
+            seed_products(db)
+            print("Products seeded ✅")
+    finally:
+        db.close()
